@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>A 股市场情绪 K 线图</title>
+  <style>
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
+    
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: #0d0d0d;
+      color: #fff;
+      padding: 20px;
+      min-height: 100vh;
+    }
+    
+    .card {
+      max-width: 900px;
+      margin: 0 auto;
+      background: #1a1a1a;
+      border-radius: 12px;
+      padding: 24px;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+    }
+    
+    .title {
+      font-size: 20px;
+      font-weight: 600;
+      margin-bottom: 20px;
+      text-align: center;
+      color: #fff;
+    }
+    
+    .kline-area {
+      background: #0f0f0f;
+      border-radius: 8px;
+      padding: 20px;
+      margin-bottom: 20px;
+    }
+    
+    canvas {
+      width: 100%;
+      height: 400px;
+    }
+    
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+    }
+    
+    .stat-item {
+      background: #1a1a1a;
+      border-radius: 8px;
+      padding: 16px;
+      text-align: center;
+    }
+    
+    .stat-label {
+      font-size: 12px;
+      color: #888;
+      margin-bottom: 8px;
+    }
+    
+    .stat-value {
+      font-size: 24px;
+      font-weight: 600;
+    }
+    
+    .stat-value.open { color: #9ca3af; }
+    .stat-value.close { color: #9ca3af; }
+    .stat-value.high { color: #4acf8a; }
+    .stat-value.low { color: #ff4d4d; }
+    
+    .legend {
+      display: flex;
+      justify-content: center;
+      gap: 24px;
+      margin-top: 16px;
+      font-size: 12px;
+      color: #888;
+    }
+    
+    .legend-item {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+    
+    .legend-color {
+      width: 16px;
+      height: 3px;
+      border-radius: 2px;
+    }
+    
+    .legend-color.up { background: #ff4d4d; }
+    .legend-color.down { background: #4acf8a; }
+    .legend-color.overheat { background: #f44336; }
+    .legend-color.ice { background: #03a9f4; }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <div class="title">📊 A 股市场情绪 K 线图</div>
+    
+    <div class="kline-area">
+      <canvas id="klineCanvas"></canvas>
+    </div>
+    
+    <div class="stats" id="stats">
+      <div class="stat-item">
+        <div class="stat-label">开盘</div>
+        <div class="stat-value open" id="statOpen">-</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">收盘</div>
+        <div class="stat-value close" id="statClose">-</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">最高</div>
+        <div class="stat-value high" id="statHigh">-</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-label">最低</div>
+        <div class="stat-value low" id="statLow">-</div>
+      </div>
+    </div>
+    
+    <div class="legend">
+      <div class="legend-item">
+        <div class="legend-color up"></div>
+        <span>阳线 (红)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color down"></div>
+        <span>阴线 (绿)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color overheat"></div>
+        <span>过热 (&gt;=75)</span>
+      </div>
+      <div class="legend-item">
+        <div class="legend-color ice"></div>
+        <span>冰点 (&lt;25)</span>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    // 数据
+    const DATA = [
+      {"date": "2026-03-30", "label": "3 月 30 日", "open": 52, "close": 56, "high": 56, "low": 36},
+      {"date": "2026-03-31", "label": "3 月 31 日", "open": 55, "close": 35, "high": 55, "low": 20}
+    ];
+
+    // 配置
+    const ML = 45;   // 左边距
+    const MR = 25;   // 右边距
+    const MT = 20;   // 上边距
+    const MB = 45;   // 下边距
+    const BW = 20;   // 蜡烛宽度（加宽）
+    
+    // A 股配色
+    const COLOR_UP = '#ff4d4d';      // 阳线红
+    const COLOR_DOWN = '#4acf8a';    // 阴线绿
+    const COLOR_GRID = '#333';
+    const COLOR_TEXT = '#888';
+    const COLOR_SHADOW_UP = 'rgba(255, 77, 77, 0.3)';
+    const COLOR_SHADOW_DOWN = 'rgba(74, 207, 138, 0.3)';
+
+    // 初始化
+    const canvas = document.getElementById('klineCanvas');
+    const ctx = canvas.getContext('2d');
+    
+    // 设置 canvas 分辨率
+    function resizeCanvas() {
+      const rect = canvas.getBoundingClientRect();
+      const dpr = window.devicePixelRatio || 1;
+      canvas.width = rect.width * dpr;
+      canvas.height = rect.height * dpr;
+      ctx.scale(dpr, dpr);
+      return { width: rect.width, height: rect.height };
+    }
+    
+    // Y 轴映射：0 在底部，100 在顶部
+    function toY(value, chartH) {
+      return MT + chartH * (1 - value / 100);
+    }
+    
+    // 绘制 K 线图
+    function drawKline(size) {
+      const { width, height } = size;
+      const chartW = width - ML - MR;
+      const chartH = height - MT - MB;
+      
+      // 清空画布
+      ctx.clearRect(0, 0, width, height);
+      
+      // 1. 先画过热/冰点区域（最底层）- 冰点≤25，过热≥75
+      const yOverheat = toY(75, chartH);  // 过热区从 75 开始
+      const yIce = toY(25, chartH);
+      
+      ctx.fillStyle = 'rgba(244, 67, 54, 0.08)';  // 过热区红色
+      ctx.fillRect(ML, MT, chartW, yOverheat - MT);
+      
+      ctx.fillStyle = 'rgba(3, 169, 244, 0.08)';  // 冰点区蓝色
+      ctx.fillRect(ML, yIce, chartW, toY(0, chartH) - yIce);
+      
+      // 2. 画背景网格（在区域之上）
+      ctx.strokeStyle = COLOR_GRID;
+      ctx.lineWidth = 1;
+      
+      // Y 轴刻度线 (0/5/10/15/.../100) - 集成到左侧，带颜色区分
+      ctx.font = '10px sans-serif';
+      ctx.textAlign = 'right';
+      
+      for (let v = 0; v <= 100; v += 5) {
+        const y = toY(v, chartH);
+        const isMajor = v % 20 === 0;  // 主刻度（0/20/40/60/80/100）
+        
+        // 画网格线
+        ctx.beginPath();
+        ctx.moveTo(ML, y);
+        ctx.lineTo(width - MR, y);
+        ctx.strokeStyle = isMajor ? COLOR_GRID : '#222';
+        ctx.lineWidth = isMajor ? 1 : 0.5;
+        ctx.stroke();
+        
+        // 根据区间设置颜色（冰点≤25，过热≥75）
+        let labelColor = COLOR_TEXT;  // 默认灰色
+        if (v <= 25) {
+          labelColor = '#03A9F4';  // 冰点区（≤25）- 蓝色
+        } else if (v >= 75) {
+          labelColor = '#F44336';  // 过热区（≥75）- 红色
+        }
+        
+        // 绘制刻度数值（左侧）
+        ctx.fillStyle = labelColor;
+        ctx.fillText(v.toString(), ML - 8, y + 4);
+      }
+      
+      // 画蜡烛 - 紧密排列（标准 K 线图效果）
+      const n = DATA.length;
+      const candleWidth = 40;  // 蜡烛实体宽度（像素）
+      const candleSpacing = candleWidth * 1.5;  // 间距 = 蜡烛宽度的 1.5 倍
+      const totalWidth = candleSpacing * (n - 1) + candleWidth;  // 总占用宽度
+      const startX = ML + (chartW - totalWidth) / 2 + candleWidth / 2;  // 居中起始点
+      
+      DATA.forEach((day, i) => {
+        const cx = startX + candleSpacing * i;  // 紧密排列
+        const isUp = day.close >= day.open;
+        const color = isUp ? COLOR_UP : COLOR_DOWN;
+        
+        const yOpen = toY(day.open, chartH);
+        const yClose = toY(day.close, chartH);
+        const yHigh = toY(day.high, chartH);
+        const yLow = toY(day.low, chartH);
+        
+        // 画影线（上影线 + 下影线）
+        ctx.strokeStyle = color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(cx, yHigh);
+        ctx.lineTo(cx, yLow);
+        ctx.stroke();
+        
+        // 画蜡烛体
+        const bodyTop = Math.min(yOpen, yClose);
+        const bodyBottom = Math.max(yOpen, yClose);
+        const bodyH = Math.max(bodyBottom - bodyTop, 1);
+        
+        ctx.fillStyle = color;
+        ctx.fillRect(cx - candleWidth/2, bodyTop, candleWidth, bodyH);
+        
+        // 标注最高/最低价（直接显示，不引线）
+        ctx.fillStyle = COLOR_TEXT;
+        ctx.font = '10px sans-serif';
+        ctx.textAlign = 'center';
+        ctx.fillText(day.high.toString(), cx, yHigh - 4);
+        ctx.fillText(day.low.toString(), cx, yLow + 12);
+        
+        // 标注日期
+        ctx.fillText(day.label, cx, height - MB + 16);
+      });
+      
+      // 更新统计数据（最后一天）
+      const last = DATA[DATA.length - 1];
+      document.getElementById('statOpen').textContent = last.open;
+      document.getElementById('statClose').textContent = last.close;
+      document.getElementById('statHigh').textContent = last.high;
+      document.getElementById('statLow').textContent = last.low;
+    }
+    
+    // 主函数
+    function init() {
+      const size = resizeCanvas();
+      drawKline(size);
+    }
+    
+    // 启动
+    init();
+    window.addEventListener('resize', () => {
+      const size = resizeCanvas();
+      drawKline(size);
+    });
+  </script>
+</body>
+</html>
