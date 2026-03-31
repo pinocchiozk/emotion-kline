@@ -308,6 +308,22 @@
       const size = resizeCanvas();
       drawKline(size);
     });
+    
+    // 每 2 分钟自动刷新（交易时段）
+    setInterval(() => {
+      const now = new Date();
+      const hour = now.getHours();
+      const min = now.getMinutes();
+      const time = hour * 60 + min;
+      
+      // 交易时段：9:15-11:30, 13:00-15:05
+      const isTradingTime = (time >= 555 && time <= 690) || (time >= 780 && time <= 905);
+      
+      if (isTradingTime) {
+        console.log('🔄 自动刷新数据...');
+        location.reload();
+      }
+    }, 120000);  // 2 分钟
   </script>
 </body>
 </html>
