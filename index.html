@@ -152,11 +152,8 @@
   </div>
 
   <script>
-    // 数据
-    const DATA = [
-      {"date": "2026-03-30", "label": "3 月 30 日", "open": 52, "close": 56, "high": 56, "low": 36},
-      {"date": "2026-03-31", "label": "3 月 31 日", "open": 55, "close": 35, "high": 55, "low": 20}
-    ];
+    // 数据（动态加载）
+    let DATA = [];
 
     // 配置
     const ML = 45;   // 左边距
@@ -296,20 +293,37 @@
       document.getElementById('statLow').textContent = last.low;
     }
     
-    // 主函数
-    function init() {
-      const size = resizeCanvas();
-      drawKline(size);
+    // 加载数据并初始化
+    async function loadDataAndDraw() {
+      try {
+        // 添加时间戳避免缓存
+        const response = await fetch('emotion-data.json?t=' + Date.now());
+        const data = await response.json();
+        DATA = data.days;
+        
+        const size = resizeCanvas();
+        drawKline(size);
+        console.log('📊 数据加载成功，共', DATA.length, '天');
+      } catch (err) {
+        console.error('❌ 数据加载失败:', err);
+        // 使用默认数据
+        DATA = [
+          {"date": "2026-03-30", "label": "3 月 30 日", "open": 52, "close": 56, "high": 56, "low": 36},
+          {"date": "2026-03-31", "label": "3 月 31 日", "open": 55, "close": 35, "high": 55, "low": 20}
+        ];
+        const size = resizeCanvas();
+        drawKline(size);
+      }
     }
     
     // 启动
-    init();
+    loadDataAndDraw();
     window.addEventListener('resize', () => {
       const size = resizeCanvas();
       drawKline(size);
     });
     
-    // 每 2 分钟自动刷新（交易时段）
+    // 每 2 分钟自动刷新数据（交易时段）
     setInterval(() => {
       const now = new Date();
       const hour = now.getHours();
@@ -321,7 +335,7 @@
       
       if (isTradingTime) {
         console.log('🔄 自动刷新数据...');
-        location.reload();
+        loadDataAndDraw();  // 只刷新数据，不刷新整个页面
       }
     }, 120000);  // 2 分钟
   </script>
