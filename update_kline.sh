@@ -54,7 +54,7 @@ SCORE=$(echo "$LATEST_LINE" | cut -d',' -f3)
 log "📊 最新数据：$DATE $TIME | 情绪：$SCORE 分"
 
 # 更新或创建今日 K 线
-python3 << EOF
+python3 << PYEOF
 import json
 from datetime import datetime
 
@@ -62,7 +62,7 @@ from datetime import datetime
 with open('$JSON_FILE', 'r', encoding='utf-8') as f:
     data = json.load(f)
 
-# 生成标签
+# 生成标签（去除前导零）
 dt = datetime.strptime('$DATE', '%Y-%m-%d')
 label = f"{dt.month}月{dt.day}日"
 
@@ -81,7 +81,7 @@ if today_index is not None:
         today['high'] = $SCORE  # 更新最高
     if today['low'] == 0 or $SCORE < today['low']:
         today['low'] = $SCORE  # 更新最低
-    log(f"✅ 更新今日 K 线：O:{today['open']} C:{today['close']} H:{today['high']} L:{today['low']}")
+    print(f"✅ 更新今日 K 线：O:{today['open']} C:{today['close']} H:{today['high']} L:{today['low']}")
 else:
     # 创建新 K 线（首次）
     new_day = {
@@ -93,12 +93,12 @@ else:
         "low": $SCORE
     }
     data['days'].append(new_day)
-    log(f"✅ 创建新 K 线：$DATE 开盘$SCORE 分")
+    print(f"✅ 创建新 K 线：$DATE 开盘$SCORE 分")
 
 # 写回文件
 with open('$JSON_FILE', 'w', encoding='utf-8') as f:
     json.dump(data, f, indent=2, ensure_ascii=False)
-EOF
+PYEOF
 
 if [ $? -eq 0 ]; then
     log "✅ 数据更新成功"
