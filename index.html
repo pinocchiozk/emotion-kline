@@ -41,10 +41,17 @@
       border-radius: 8px;
       padding: 20px;
       margin-bottom: 20px;
+      overflow-x: auto;
+      overflow-y: hidden;
+    }
+    
+    .canvas-wrapper {
+      position: relative;
+      min-width: 100%;
     }
     
     canvas {
-      width: 100%;
+      display: block;
       height: 400px;
     }
     
@@ -109,7 +116,9 @@
     <div class="title">📊 A 股市场情绪 K 线图</div>
     
     <div class="kline-area">
-      <canvas id="klineCanvas"></canvas>
+      <div class="canvas-wrapper">
+        <canvas id="klineCanvas"></canvas>
+      </div>
     </div>
     
     <div class="stats" id="stats">
@@ -160,7 +169,9 @@
     const MR = 25;   // 右边距
     const MT = 20;   // 上边距
     const MB = 45;   // 下边距
-    const BW = 20;   // 蜡烛宽度（加宽）
+    const CANDLE_WIDTH = 40;      // 蜡烛宽度（像素）
+    const CANDLE_SPACING = 60;    // 蜡烛间距（像素）
+    const MIN_CHART_W = 400;      // 最小图表宽度
     
     // A 股配色
     const COLOR_UP = '#ff4d4d';      // 阳线红
@@ -174,14 +185,20 @@
     const canvas = document.getElementById('klineCanvas');
     const ctx = canvas.getContext('2d');
     
-    // 设置 canvas 分辨率
+    // 设置 canvas 分辨率（动态宽度）
     function resizeCanvas() {
-      const rect = canvas.getBoundingClientRect();
+      const n = DATA.length || 1;
+      // 根据 K 线数量计算所需宽度
+      const requiredWidth = ML + MR + CANDLE_SPACING * (n - 1) + CANDLE_WIDTH + MIN_CHART_W;
+      const containerWidth = document.querySelector('.kline-area').clientWidth;
+      const displayWidth = Math.max(requiredWidth, containerWidth);
+      
       const dpr = window.devicePixelRatio || 1;
-      canvas.width = rect.width * dpr;
-      canvas.height = rect.height * dpr;
+      canvas.width = displayWidth * dpr;
+      canvas.height = 400 * dpr;
       ctx.scale(dpr, dpr);
-      return { width: rect.width, height: rect.height };
+      
+      return { width: displayWidth, height: 400 };
     }
     
     // Y 轴映射：0 在底部，100 在顶部
@@ -208,7 +225,7 @@
       ctx.fillStyle = 'rgba(3, 169, 244, 0.08)';  // 冰点区蓝色
       ctx.fillRect(ML, yIce, chartW, toY(0, chartH) - yIce);
       
-      // 2. 画背景网格（在区域之上）
+      // 2. 画背景网格（在区域之上）- 延伸到整个图表宽度
       ctx.strokeStyle = COLOR_GRID;
       ctx.lineWidth = 1;
       
@@ -220,7 +237,7 @@
         const y = toY(v, chartH);
         const isMajor = v % 20 === 0;  // 主刻度（0/20/40/60/80/100）
         
-        // 画网格线
+        // 画网格线 - 延伸到整个图表右侧
         ctx.beginPath();
         ctx.moveTo(ML, y);
         ctx.lineTo(width - MR, y);
@@ -241,15 +258,12 @@
         ctx.fillText(v.toString(), ML - 8, y + 4);
       }
       
-      // 画蜡烛 - 紧密排列（标准 K 线图效果）
+      // 画蜡烛 - 从左到右排列
       const n = DATA.length;
-      const candleWidth = 40;  // 蜡烛实体宽度（像素）
-      const candleSpacing = candleWidth * 1.5;  // 间距 = 蜡烛宽度的 1.5 倍
-      const totalWidth = candleSpacing * (n - 1) + candleWidth;  // 总占用宽度
-      const startX = ML + (chartW - totalWidth) / 2 + candleWidth / 2;  // 居中起始点
+      const startX = ML + CANDLE_WIDTH / 2;  // 起始 X 坐标（从左边距开始）
       
       DATA.forEach((day, i) => {
-        const cx = startX + candleSpacing * i;  // 紧密排列
+        const cx = startX + CANDLE_SPACING * i;  // 按间距排列
         const isUp = day.close >= day.open;
         const color = isUp ? COLOR_UP : COLOR_DOWN;
         
@@ -272,7 +286,7 @@
         const bodyH = Math.max(bodyBottom - bodyTop, 1);
         
         ctx.fillStyle = color;
-        ctx.fillRect(cx - candleWidth/2, bodyTop, candleWidth, bodyH);
+        ctx.fillRect(cx - CANDLE_WIDTH/2, bodyTop, CANDLE_WIDTH, bodyH);
         
         // 标注最高/最低价（直接显示，不引线）
         ctx.fillStyle = COLOR_TEXT;
