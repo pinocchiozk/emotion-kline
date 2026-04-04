@@ -178,7 +178,7 @@
     
     <div class="zoom-controls">
       <button class="zoom-btn" id="zoomOut">−</button>
-      <input type="range" class="zoom-slider" id="zoomSlider" min="0.3" max="1.5" step="0.05" value="1">
+      <input type="range" class="zoom-slider" id="zoomSlider" min="0.2" max="0.8" step="0.05" value="1">
       <button class="zoom-btn" id="zoomIn">+</button>
       <span class="zoom-level" id="zoomLevel">100%</span>
     </div>
@@ -245,7 +245,7 @@
     // 缩放配置
     let zoomLevel = 1;           // 当前缩放级别
     const MIN_ZOOM = 0.3;        // 最小缩放（可深入缩出）
-    const MAX_ZOOM = 1.5;        // 最大缩放（减少放大级别）
+    const MAX_ZOOM = 0.8;        // 最大缩放（主要支持缩出）
     
     // 平移配置
     let panOffset = 0;           // 平移偏移量（像素）
