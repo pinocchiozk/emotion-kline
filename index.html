@@ -385,15 +385,9 @@
         ctx.fillText(day.high.toString(), cx, yHigh - 4);
         ctx.fillText(day.low.toString(), cx, yLow + 12);
         
-        // 标注日期（缩放级别 < 0.7 时使用短格式如 "4.2"）
-        let dateLabel = day.label;
-        if (zoomLevel < 0.7 && day.label) {
-          // 从 "4 月 2 日" 转换为 "4.2"
-          const match = day.label.match(/(\d+)\s*月\s*(\d+)\s*日/);
-          if (match) {
-            dateLabel = match[1] + '.' + match[2];
-          }
-        }
+        // 标注日期（统一使用短格式如 "4.2"）
+        const match = day.label && day.label.match(/(\d+)\s*月\s*(\d+)\s*日/);
+        const dateLabel = match ? match[1] + '.' + match[2] : day.label;
         ctx.fillText(dateLabel, cx, height - MB + 16);
       });
       
