@@ -42,13 +42,13 @@
     },
     {
       "date": "2026-04-07",
-      "label": "",
-      "open": 45,
-      "close": 46,
-      "high": 46,
+      "label": "4 月 7 日",
+      "open": 55,
+      "close": 33,
+      "high": 55,
       "low": 33
     }
   ],
-  "lastUpdate": "2026-04-04 09:52:00",
-  "marketStatus": "closed"
+  "lastUpdate": "2026-04-07 09:34:00",
+  "marketStatus": "opened"
 }
