@@ -63,8 +63,16 @@
       "close": 42,
       "high": 72,
       "low": 20
+    },
+    {
+      "date": "2026-04-10",
+      "label": "",
+      "open": 62,
+      "close": 62,
+      "high": 62,
+      "low": 62
     }
   ],
-  "lastUpdate": "2026-04-08 17:05:00",
+  "lastUpdate": "2026-04-09 15:05:00",
   "marketStatus": "closed"
 }
