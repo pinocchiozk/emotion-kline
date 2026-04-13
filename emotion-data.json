@@ -50,15 +50,15 @@
     },
     {
       "date": "2026-04-08",
-      "label": "4 月 8 日",
-      "open": 85,
+      "label": "",
+      "open": 84,
       "close": 88,
       "high": 88,
       "low": 51
     },
     {
       "date": "2026-04-09",
-      "label": "4 月 9 日",
+      "label": "",
       "open": 72,
       "close": 42,
       "high": 72,
@@ -66,13 +66,21 @@
     },
     {
       "date": "2026-04-10",
-      "label": "4 月 10 日",
+      "label": "",
       "open": 62,
       "close": 62,
       "high": 64,
       "low": 47
+    },
+    {
+      "date": "2026-04-13",
+      "label": "4月13日",
+      "open": 56,
+      "close": 49,
+      "high": 56,
+      "low": 20
     }
   ],
-  "lastUpdate": "2026-04-09 15:05:00",
+  "lastUpdate": "2026-04-07 15:05:00",
   "marketStatus": "closed"
 }
